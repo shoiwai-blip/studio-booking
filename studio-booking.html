@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STUDIO M-AG</title>
+<style>
+  :root {
+    --bg:#0a0a0f; --surface:#13131a; --surface2:#1c1c28; --border:#2a2a3d;
+    --accent:#7c6ff7; --accent2:#a855f7; --text:#e8e8f0; --text2:#8888a8;
+    --danger:#f75f7c; --success:#4ade80; --warning:#fbbf24; --kari:#60a5fa;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* ── SCREEN MANAGER ── */
+  .screen{display:none;}
+  .screen.active{display:flex;}
+
+  /* ── AUTH BASE ── */
+  #screen-login,#screen-register,#screen-pending{
+    align-items:center;justify-content:center;min-height:100vh;
+    background:radial-gradient(ellipse at 30% 50%,rgba(124,111,247,0.12) 0%,transparent 60%),
+               radial-gradient(ellipse at 70% 20%,rgba(168,85,247,0.08) 0%,transparent 50%),var(--bg);
+  }
+  .auth-box{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:44px 38px;width:400px;max-width:94vw;box-shadow:0 0 60px rgba(124,111,247,0.12);}
+  .auth-logo{text-align:center;margin-bottom:28px;}
+  .auth-logo .icon{font-size:40px;margin-bottom:8px;}
+  .auth-logo h1{font-size:24px;font-weight:800;letter-spacing:0.14em;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .auth-logo p{color:var(--text2);font-size:11px;margin-top:4px;letter-spacing:0.1em;}
+  .form-group{margin-bottom:14px;}
+  .form-group label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;letter-spacing:0.1em;text-transform:uppercase;}
+  .form-group input,.form-group select,.form-group textarea{
+    width:100%;background:var(--surface2);border:1px solid var(--border);
+    border-radius:10px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;transition:border-color 0.2s;
+  }
+  .form-group input:focus,.form-group select:focus{border-color:var(--accent);}
+  .form-group textarea{resize:vertical;min-height:72px;}
+  .btn-primary{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:13px;color:white;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s,transform 0.1s;margin-top:6px;}
+  .btn-primary:hover{opacity:0.9;transform:translateY(-1px);}
+  .auth-link{font-size:12px;color:var(--text2);text-align:center;margin-top:14px;}
+  .auth-link a{color:var(--accent);cursor:pointer;text-decoration:underline;}
+  .error-msg{color:var(--danger);font-size:12px;margin-top:8px;text-align:center;display:none;}
+  .success-msg{color:var(--success);font-size:12px;margin-top:8px;text-align:center;display:none;}
+  .auth-hint{font-size:11px;color:var(--text2);text-align:center;margin-top:14px;line-height:1.8;}
+
+  /* pending screen */
+  .pending-card{text-align:center;}
+  .pending-icon{font-size:56px;margin-bottom:16px;}
+  .pending-title{font-size:20px;font-weight:700;margin-bottom:10px;}
+  .pending-desc{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:24px;}
+  .pending-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);border-radius:20px;padding:6px 16px;font-size:12px;color:var(--warning);margin-bottom:20px;}
+
+  /* ── APP ── */
+  #screen-app{flex-direction:row;}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:24px 0;z-index:100;}
+  .sidebar-logo{padding:0 20px 22px;border-bottom:1px solid var(--border);margin-bottom:14px;}
+  .logo-main{font-size:17px;font-weight:800;letter-spacing:0.12em;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+  .logo-sub{font-size:10px;color:var(--text2);margin-top:3px;letter-spacing:0.06em;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;font-size:13px;color:var(--text2);transition:all 0.15s;border-left:3px solid transparent;position:relative;}
+  .nav-item:hover{color:var(--text);background:rgba(124,111,247,0.06);}
+  .nav-item.active{color:var(--accent);background:rgba(124,111,247,0.1);border-left-color:var(--accent);}
+  .nav-item .ni{font-size:16px;width:20px;text-align:center;}
+  .nav-badge{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:var(--danger);color:white;font-size:10px;font-weight:700;border-radius:10px;padding:1px 7px;min-width:18px;text-align:center;}
+  .sidebar-bottom{margin-top:auto;padding:16px 20px;border-top:1px solid var(--border);}
+  .user-info{display:flex;align-items:center;gap:10px;}
+  .user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;}
+  .user-name{font-size:12px;font-weight:600;}
+  .user-role{font-size:10px;color:var(--text2);}
+  .btn-logout{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text2);font-size:11px;cursor:pointer;margin-top:10px;width:100%;transition:all 0.2s;}
+  .btn-logout:hover{border-color:var(--danger);color:var(--danger);}
+
+  .main-content{margin-left:220px;padding:32px;min-height:100vh;width:calc(100% - 220px);}
+  .page{display:none;}
+  .page.active{display:block;}
+  .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+  .page-title{font-size:22px;font-weight:700;}
+  .page-title span{color:var(--text2);font-size:14px;font-weight:400;margin-left:10px;}
+
+  /* STATS */
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;}
+  .stat-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
+  .stat-value{font-size:30px;font-weight:700;}
+  .stat-value.accent{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+
+  /* OCCUPANCY CARD */
+  .occupancy-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;}
+  .occupancy-main{display:flex;flex-direction:column;gap:4px;min-width:160px;}
+  .occupancy-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;}
+  .occupancy-value{font-size:42px;font-weight:800;line-height:1;}
+  .occupancy-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+  .occupancy-bar-wrap{flex:1;min-width:200px;}
+  .occupancy-bar-label{font-size:11px;color:var(--text2);margin-bottom:8px;display:flex;justify-content:space-between;}
+  .occupancy-bar-bg{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-bottom:12px;}
+  .occupancy-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease;}
+  .occupancy-detail{display:flex;gap:20px;flex-wrap:wrap;}
+  .occupancy-detail-item{font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:2px;}
+  .occupancy-detail-item strong{color:var(--text);font-size:14px;}
+
+  /* GCAL */
+  .gcal-banner{background:linear-gradient(135deg,rgba(66,133,244,0.12),rgba(124,111,247,0.12));border:1px solid rgba(66,133,244,0.25);border-radius:12px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+  .gcal-banner .text{flex:1;}
+  .gcal-banner .text h4{font-size:13px;font-weight:600;margin-bottom:2px;}
+  .gcal-banner .text p{font-size:11px;color:var(--text2);}
+  .btn-gcal{background:#4285f4;border:none;border-radius:8px;padding:8px 16px;color:white;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .btn-gcal.connected{background:var(--success);}
+
+  /* CALENDAR */
+  .calendar-grid{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:24px;}
+  .cal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--surface2);}
+  .cal-nav{display:flex;align-items:center;gap:12px;}
+  .cal-nav button{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+  .cal-nav button:hover{border-color:var(--accent);color:var(--accent);}
+  .cal-month{font-size:16px;font-weight:700;min-width:150px;text-align:center;}
+  .cal-month-summary{display:flex;gap:8px;padding:10px 20px;background:var(--surface2);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;}
+  .cal-summary-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:4px 12px;}
+  .cal-summary-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);}
+  .cal-weekday{padding:10px;text-align:center;font-size:11px;color:var(--text2);font-weight:600;letter-spacing:0.08em;}
+  .cal-weekday:first-child{color:var(--danger);}
+  .cal-weekday:last-child{color:var(--accent);}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);}
+  .cal-day{min-height:105px;padding:8px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
+  .cal-day:nth-child(7n){border-right:none;}
+  .cal-day:hover{background:rgba(124,111,247,0.05);}
+  .cal-day.today .day-num{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;}
+  .cal-day.other-month{opacity:0.2;pointer-events:none;}
+  .cal-day.sunday .day-num{color:var(--danger);}
+  .cal-day.saturday .day-num{color:var(--accent);}
+  .day-num{font-size:13px;font-weight:600;margin-bottom:5px;}
+  .day-booking{border-radius:4px;padding:2px 5px;font-size:10px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;border-left:2px solid;}
+  .day-booking.confirmed{background:rgba(74,222,128,0.15);border-color:var(--success);color:var(--success);}
+  .day-booking.kari{background:rgba(96,165,250,0.15);border-color:var(--kari);color:var(--kari);}
+
+  /* BOOKING CARDS */
+  .filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  .filter-btn{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 16px;color:var(--text2);font-size:12px;cursor:pointer;transition:all 0.2s;}
+  .filter-btn.active{background:var(--accent);border-color:var(--accent);color:white;}
+  .booking-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;transition:border-color 0.2s;}
+  .booking-card:hover{border-color:rgba(124,111,247,0.5);}
+  .booking-color{width:4px;height:52px;border-radius:2px;flex-shrink:0;}
+  .booking-info{flex:1;min-width:0;}
+  .booking-title{font-size:14px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .booking-meta{font-size:12px;color:var(--text2);display:flex;gap:14px;flex-wrap:wrap;}
+  .booking-meta span{display:flex;align-items:center;gap:4px;}
+  .booked-by-badge{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 9px;font-size:11px;color:var(--text2);}
+  .mini-avatar{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:white;}
+  .status-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;flex-shrink:0;}
+  .status-badge.confirmed{background:rgba(74,222,128,0.15);color:var(--success);}
+  .status-badge.kari{background:rgba(96,165,250,0.15);color:var(--kari);}
+  .booking-actions{display:flex;gap:6px;}
+  .btn-icon{background:var(--surface2);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all 0.2s;color:var(--text2);}
+  .btn-icon:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-icon.danger:hover{border-color:var(--danger);color:var(--danger);}
+
+  /* USERS PAGE */
+  .users-section-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+  .users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-bottom:32px;}
+  .user-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;}
+  .user-card-header{display:flex;align-items:center;gap:12px;}
+  .user-card-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white;}
+  .user-card-name{font-size:14px;font-weight:600;}
+  .user-card-email{font-size:11px;color:var(--text2);}
+  .user-card-footer{display:flex;align-items:center;justify-content:space-between;}
+  .role-badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;width:fit-content;}
+  .role-badge.admin{background:rgba(124,111,247,0.2);color:var(--accent);}
+  .role-badge.staff{background:rgba(74,222,128,0.15);color:var(--success);}
+  .role-badge.artist{background:rgba(251,191,36,0.15);color:var(--warning);}
+
+  /* APPROVAL CARDS */
+  .approval-card{background:var(--surface);border:1px solid rgba(251,191,36,0.3);border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;}
+  .approval-info{flex:1;}
+  .approval-name{font-size:14px;font-weight:600;margin-bottom:4px;}
+  .approval-meta{font-size:12px;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap;}
+  .approval-actions{display:flex;gap:8px;}
+  .btn-approve{background:rgba(74,222,128,0.15);border:1px solid var(--success);border-radius:8px;padding:6px 14px;color:var(--success);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+  .btn-approve:hover{background:var(--success);color:white;}
+  .btn-reject{background:rgba(247,95,124,0.1);border:1px solid var(--danger);border-radius:8px;padding:6px 14px;color:var(--danger);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+  .btn-reject:hover{background:var(--danger);color:white;}
+  .empty-state{padding:32px;text-align:center;color:var(--text2);font-size:13px;background:var(--surface);border:1px dashed var(--border);border-radius:12px;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:30px;width:500px;max-width:92vw;max-height:90vh;overflow-y:auto;box-shadow:0 0 80px rgba(0,0,0,0.5);}
+  .modal h2{font-size:17px;font-weight:700;margin-bottom:22px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-actions{display:flex;gap:10px;margin-top:22px;}
+  .btn-secondary{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;color:var(--text2);font-size:14px;cursor:pointer;transition:all 0.2s;}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+  .btn-submit{flex:2;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:12px;color:white;font-size:14px;font-weight:600;cursor:pointer;}
+  .btn-submit:hover{opacity:0.9;}
+  .cond-field{display:none;}
+  .cond-field.show{display:block;}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:28px;right:28px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 18px;font-size:13px;z-index:9999;display:none;align-items:center;gap:10px;box-shadow:0 8px 32px rgba(0,0,0,0.4);}
+  .toast.show{display:flex;animation:slideIn 0.3s ease;}
+  @keyframes slideIn{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+  @media(max-width:900px){
+    .sidebar{width:56px;}
+    .nav-item span,.logo-sub,.user-name,.user-role,.btn-logout{display:none;}
+    .logo-main{font-size:10px;letter-spacing:0;}
+    .nav-badge{right:6px;font-size:9px;padding:1px 4px;}
+    .main-content{margin-left:56px;padding:18px;width:calc(100% - 56px);}
+    .stats-grid{grid-template-columns:repeat(2,1fr);}
+    .two-col{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="screen-login" class="screen active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="icon">🎙️</div>
+      <h1>STUDIO M-AG</h1>
+      <p>STUDIO BOOKING SYSTEM</p>
+    </div>
+    <div class="form-group"><label>ユーザー名</label><input id="login-user" value="admin" placeholder="ユーザー名"></div>
+    <div class="form-group"><label>パスワード</label><input id="login-pass" type="password" value="1234" placeholder="パスワード"></div>
+    <button class="btn-primary" onclick="doLogin()">ログイン</button>
+    <p class="error-msg" id="login-error">ユーザー名またはパスワードが違います</p>
+    <div class="auth-link">アカウントをお持ちでない方は<a onclick="showScreen('screen-register')">新規登録申請</a></div>
+    <p class="auth-hint">デモ：admin / 1234 &nbsp;|&nbsp; staff / 1234 &nbsp;|&nbsp; artist / 1234</p>
+  </div>
+</div>
+
+<!-- ── REGISTER ── -->
+<div id="screen-register" class="screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="icon">✍️</div>
+      <h1>STUDIO M-AG</h1>
+      <p>新規アカウント登録申請</p>
+    </div>
+    <div class="form-group"><label>氏名・表示名</label><input id="reg-name" placeholder="例：田中 太郎"></div>
+    <div class="form-group"><label>ユーザー名（ログインID）</label><input id="reg-username" placeholder="英数字・記号のみ"></div>
+    <div class="form-group"><label>メールアドレス</label><input id="reg-email" type="email" placeholder="example@studio.jp"></div>
+    <div class="form-group">
+      <label>ロール</label>
+      <select id="reg-role">
+        <option value="staff">スタッフ</option>
+        <option value="artist">アーティスト</option>
+      </select>
+    </div>
+    <div class="form-group"><label>パスワード</label><input id="reg-pass" type="password" placeholder="6文字以上"></div>
+    <div class="form-group"><label>パスワード（確認）</label><input id="reg-pass2" type="password" placeholder="再入力"></div>
+    <button class="btn-primary" onclick="doRegister()">申請する</button>
+    <p class="error-msg" id="reg-error"></p>
+    <div class="auth-link"><a onclick="showScreen('screen-login')">← ログインに戻る</a></div>
+  </div>
+</div>
+
+<!-- ── PENDING ── -->
+<div id="screen-pending" class="screen">
+  <div class="auth-box">
+    <div class="pending-card">
+      <div class="pending-icon">⏳</div>
+      <div class="pending-title">申請を受け付けました</div>
+      <div class="pending-badge">🔔 承認待ち</div>
+      <div class="pending-desc">管理者がアカウントを承認するまでお待ちください。<br>承認後、ログインできるようになります。</div>
+      <button class="btn-primary" style="max-width:200px;margin:0 auto" onclick="showScreen('screen-login')">ログイン画面へ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="screen-app" class="screen">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-main">STUDIO M-AG</div>
+      <div class="logo-sub">Booking System</div>
+    </div>
+    <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')"><span class="ni">📊</span><span>ダッシュボード</span></div>
+    <div class="nav-item" id="nav-calendar" onclick="showPage('calendar')"><span class="ni">📅</span><span>カレンダー</span></div>
+    <div class="nav-item" id="nav-bookings" onclick="showPage('bookings')"><span class="ni">🎵</span><span>予約一覧</span></div>
+    <div class="nav-item" id="nav-users" onclick="showPage('users')"><span class="ni">👥</span><span>ユーザー管理</span><span class="nav-badge" id="approval-badge" style="display:none">0</span></div>
+    <div class="sidebar-bottom">
+      <div class="user-info">
+        <div class="user-avatar" id="sidebar-avatar">A</div>
+        <div><div class="user-name" id="sidebar-name">Admin</div><div class="user-role" id="sidebar-role">管理者</div></div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">ログアウト</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">ダッシュボード <span id="today-date"></span></div>
+        <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="openModal()">＋ 新規予約</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">今月の予約</div><div class="stat-value accent" id="stat-month">0</div></div>
+        <div class="stat-card"><div class="stat-label">今週の予約</div><div class="stat-value" id="stat-week">0</div></div>
+        <div class="stat-card"><div class="stat-label">仮押さえ中</div><div class="stat-value" style="color:var(--kari)" id="stat-kari">0</div></div>
+        <div class="stat-card"><div class="stat-label">今日の予約</div><div class="stat-value" style="color:var(--success)" id="stat-today">0</div></div>
+      </div>
+      <!-- 稼働率カード -->
+      <div class="occupancy-card">
+        <div class="occupancy-main">
+          <div class="occupancy-label">📊 今月の稼働率</div>
+          <div class="occupancy-value" id="occ-pct" style="color:var(--accent)">--%</div>
+          <div class="occupancy-sub" id="occ-period"></div>
+        </div>
+        <div class="occupancy-bar-wrap">
+          <div class="occupancy-bar-label">
+            <span>1st ＋ 2nd ／ レコーディング・レッスン</span>
+            <span id="occ-bar-right" style="font-weight:600;color:var(--text)"></span>
+          </div>
+          <div class="occupancy-bar-bg"><div class="occupancy-bar-fill" id="occ-bar" style="width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+          <div class="occupancy-detail" id="occ-detail"></div>
+        </div>
+      </div>
+
+      <div class="gcal-banner">
+        <span style="font-size:22px">📆</span>
+        <div class="text"><h4>Google カレンダー連携</h4><p>予約をGoogleカレンダーに自動同期（APIキー設定が必要）</p></div>
+        <button class="btn-gcal" id="gcal-btn" onclick="toggleGcal()">連携する</button>
+      </div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px">直近の予約</div>
+      <div id="recent-bookings"></div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="page" id="page-calendar">
+      <div class="page-header">
+        <div class="page-title">カレンダー</div>
+        <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="openModal()">＋ 新規予約</button>
+      </div>
+      <div class="calendar-grid">
+        <div class="cal-header">
+          <div class="cal-nav">
+            <button onclick="changeMonth(-1)">‹</button>
+            <div class="cal-month" id="cal-month-label"></div>
+            <button onclick="changeMonth(1)">›</button>
+          </div>
+          <button onclick="goToday()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;color:var(--text2);cursor:pointer;font-size:12px;">今日</button>
+        </div>
+        <div class="cal-month-summary" id="cal-month-summary"></div>
+        <div class="cal-weekdays">
+          <div class="cal-weekday">日</div><div class="cal-weekday">月</div><div class="cal-weekday">火</div>
+          <div class="cal-weekday">水</div><div class="cal-weekday">木</div><div class="cal-weekday">金</div><div class="cal-weekday">土</div>
+        </div>
+        <div class="cal-days" id="cal-days"></div>
+      </div>
+    </div>
+
+    <!-- BOOKINGS -->
+    <div class="page" id="page-bookings">
+      <div class="page-header">
+        <div class="page-title">予約一覧</div>
+        <button class="btn-primary" style="width:auto;padding:10px 22px" onclick="openModal()">＋ 新規予約</button>
+      </div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterBookings('all',this)">すべて</button>
+        <button class="filter-btn" onclick="filterBookings('kari',this)">仮押さえ</button>
+        <button class="filter-btn" onclick="filterBookings('confirmed',this)">確定</button>
+        <button class="filter-btn" onclick="filterBookings('1st',this)">1st</button>
+        <button class="filter-btn" onclick="filterBookings('2nd',this)">2nd</button>
+        <button class="filter-btn" onclick="filterBookings('1st Lobby',this)">1st Lobby</button>
+      </div>
+      <div id="bookings-list"></div>
+    </div>
+
+    <!-- USERS -->
+    <div class="page" id="page-users">
+      <div class="page-header"><div class="page-title">ユーザー管理</div></div>
+
+      <!-- 承認待ちセクション（adminのみ） -->
+      <div id="approval-section" style="display:none">
+        <div class="users-section-title">
+          🔔 承認待ちアカウント
+          <span id="approval-count-badge" style="background:rgba(247,95,124,0.15);color:var(--danger);font-size:11px;font-weight:600;padding:2px 10px;border-radius:20px;"></span>
+        </div>
+        <div id="approval-list"></div>
+      </div>
+
+      <div class="users-section-title" style="margin-top:8px">👤 承認済みユーザー</div>
+      <div class="users-grid" id="users-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOOKING MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-title">📅 新規予約</h2>
+    <div class="form-group"><label>スタジオ</label>
+      <select id="f-studio"><option value="1st">1st</option><option value="2nd">2nd</option><option value="1st Lobby">1st Lobby</option></select>
+    </div>
+    <div class="form-group"><label>利用用途</label>
+      <select id="f-purpose" onchange="onPurposeChange()">
+        <option value="レコーディング">レコーディング</option><option value="レッスン">レッスン</option>
+        <option value="ミーティング">ミーティング</option><option value="作業">作業</option><option value="その他">その他（自由記入）</option>
+      </select>
+    </div>
+    <div class="form-group cond-field" id="purpose-other-wrap"><label>用途を入力</label><input id="f-purpose-other" placeholder="用途を自由に入力"></div>
+    <div class="form-group"><label>利用者</label>
+      <select id="f-user-type" onchange="onUserTypeChange()">
+        <option value="staff">社内スタッフ</option><option value="artist">アーティスト（自由記入）</option>
+      </select>
+    </div>
+    <div class="form-group cond-field" id="artist-name-wrap"><label>アーティスト名</label><input id="f-artist-name" placeholder="アーティスト名を入力"></div>
+    <div class="form-group"><label>日付</label><input type="date" id="f-date"></div>
+    <div class="two-col">
+      <div class="form-group"><label>開始時間</label><select id="f-start"></select></div>
+      <div class="form-group"><label>終了時間</label><select id="f-end"></select></div>
+    </div>
+    <div class="form-group"><label>メモ・備考</label><textarea id="f-note" placeholder="機材リクエスト、人数、その他連絡事項など"></textarea></div>
+    <div class="form-group" id="status-group"><label>ステータス</label>
+      <select id="f-status"><option value="kari">仮押さえ</option><option value="confirmed">確定</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn-submit" onclick="submitBooking()">予約する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toast-icon">✅</span><span id="toast-text"></span></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  API
+// ══════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbwOL-cm7FsG_iYAvTjz-yc1mZniFEy7VjkW0RdbZftsfKftFq9GxDkjnCQHFpHiTAtP/exec';
+
+async function api(action, payload={}) {
+  try {
+    const res = await fetch(API_URL, {
+      method:'POST',
+      body: JSON.stringify({action, payload})
+    });
+    return await res.json();
+  } catch(e) {
+    return { ok:false, error: 'ネットワークエラー: ' + e.message };
+  }
+}
+
+// ── ローディング表示 ──
+function setLoading(show, msg='処理中...') {
+  let el = document.getElementById('global-loading');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'global-loading';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(3px);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
+    el.innerHTML = '<div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite"></div><div id="loading-msg" style="color:var(--text2);font-size:13px"></div>';
+    document.body.appendChild(el);
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+  }
+  document.getElementById('loading-msg').textContent = msg;
+  el.style.display = show ? 'flex' : 'none';
+}
+
+// ══════════════════════════════════════════════
+//  DATA STORE（メモリキャッシュ）
+// ══════════════════════════════════════════════
+let USERS_DB = {}; // ログイン後は currentUser のみ使用
+
+// Pending registration requests（APIから取得）
+let PENDING_USERS = [];
+
+const STUDIO_COLORS = { '1st':'#7c6ff7', '2nd':'#4ade80', '1st Lobby':'#fbbf24' };
+
+let BOOKINGS = []; // スプレッドシートから取得
+let nextId=Date.now(), currentUser=null, calYear=2026, calMonth=2, editingId=null, gcalConnected=false, currentFilter='all';
+
+// ── TIME OPTIONS ──
+function buildTimes(){const t=[];for(let h=9;h<=22;h++){t.push(`${String(h).padStart(2,'0')}:00`);if(h<22)t.push(`${String(h).padStart(2,'0')}:30`);}return t;}
+const TIMES=buildTimes();
+function fillSel(id,val){document.getElementById(id).innerHTML=TIMES.map(t=>`<option${t===val?' selected':''}>${t}</option>`).join('');}
+fillSel('f-start','10:00');fillSel('f-end','12:00');
+
+// ── SCREEN MANAGER ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+
+// ── LOGIN ──
+async function doLogin(){
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-error');
+  if(!u||!p){err.textContent='ユーザー名とパスワードを入力してください';err.style.display='block';return;}
+  setLoading(true,'ログイン中...');
+  const result=await api('login',{username:u,pass:p});
+  setLoading(false);
+  if(!result.ok){
+    err.textContent=result.error==='pending'?'このアカウントはまだ承認されていません。管理者の承認をお待ちください。':'ユーザー名またはパスワードが違います';
+    err.style.display='block';return;
+  }
+  currentUser=result.user;
+  err.style.display='none';
+  document.getElementById('sidebar-avatar').textContent=currentUser.initial||currentUser.name.charAt(0);
+  document.getElementById('sidebar-name').textContent=currentUser.name;
+  document.getElementById('sidebar-role').textContent=currentUser.label;
+  if(currentUser.role!=='admin'){
+    document.getElementById('status-group').style.display='none';
+    document.getElementById('nav-users').style.display='none';
+  } else {
+    document.getElementById('status-group').style.display='block';
+    document.getElementById('nav-users').style.display='flex';
+  }
+  showScreen('screen-app');
+  await init();
+}
+function doLogout(){
+  currentUser=null;BOOKINGS=[];PENDING_USERS=[];
+  showScreen('screen-login');
+  document.getElementById('login-pass').value='';
+}
+document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+// ── REGISTER ──
+async function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const username=document.getElementById('reg-username').value.trim();
+  const email=document.getElementById('reg-email').value.trim();
+  const role=document.getElementById('reg-role').value;
+  const pass=document.getElementById('reg-pass').value;
+  const pass2=document.getElementById('reg-pass2').value;
+  const err=document.getElementById('reg-error');
+  if(!name||!username||!email||!pass){err.textContent='すべての項目を入力してください';err.style.display='block';return;}
+  if(!/^[a-zA-Z0-9_-]+$/.test(username)){err.textContent='ユーザー名は英数字・アンダースコア・ハイフンのみ使用可能です';err.style.display='block';return;}
+  if(pass.length<6){err.textContent='パスワードは6文字以上にしてください';err.style.display='block';return;}
+  if(pass!==pass2){err.textContent='パスワードが一致しません';err.style.display='block';return;}
+  setLoading(true,'申請中...');
+  const result=await api('register',{username,name,email,role,pass});
+  setLoading(false);
+  if(!result.ok){err.textContent=result.error;err.style.display='block';return;}
+  err.style.display='none';
+  ['reg-name','reg-username','reg-email','reg-pass','reg-pass2'].forEach(id=>document.getElementById(id).value='');
+  showScreen('screen-pending');
+}
+
+// ── INIT ──
+async function init(){
+  const t=new Date();
+  document.getElementById('today-date').textContent=t.toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+  calYear=t.getFullYear();calMonth=t.getMonth();
+  setLoading(true,'データを読み込み中...');
+  const result=await api('getBookings');
+  if(result.ok) BOOKINGS=result.data.map(b=>({...b,id:Number(b.id)||b.id}));
+  setLoading(false);
+  updateStats();renderRecentBookings();renderCalendar();renderBookingsList();
+  await renderUsers();
+  updateApprovalBadge();
+  showPage('dashboard');
+}
+
+// ── NAVIGATION ──
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if(name==='calendar')renderCalendar();
+  if(name==='bookings')renderBookingsList();
+  if(name==='users')renderUsers();
+}
+
+// ── STATS ──
+function updateStats(){
+  const t=new Date(),ts=t.toISOString().slice(0,10);
+  const ws=new Date(t);ws.setDate(t.getDate()-t.getDay());
+  const we=new Date(ws);we.setDate(ws.getDate()+6);
+  const mo=ts.slice(0,7);
+  let month=0,week=0,kari=0,today=0;
+  BOOKINGS.forEach(b=>{
+    const d=new Date(b.date);
+    if(b.date.startsWith(mo))month++;
+    if(d>=ws&&d<=we)week++;
+    if(b.status==='kari')kari++;
+    if(b.date===ts)today++;
+  });
+  document.getElementById('stat-month').textContent=month;
+  document.getElementById('stat-week').textContent=week;
+  document.getElementById('stat-kari').textContent=kari;
+  document.getElementById('stat-today').textContent=today;
+  calcMonthOccupancy(mo);
+}
+
+// ── OCCUPANCY ──
+// 稼働率 = 実予約時間 ÷（営業時間 × 部屋数 × 営業日数）× 100
+// 対象スタジオ: 1st, 2nd（2部屋）
+// 対象用途: レコーディング, レッスン
+// 営業時間: 09:00〜22:00 = 13h / 日, 営業日数: 365日 / 年
+const OCC_STUDIOS  = ['1st','2nd'];
+const OCC_PURPOSES = ['レコーディング','レッスン'];
+const OCC_OPEN_H   = 13;   // 営業時間（時間）
+const OCC_ROOMS    = 2;    // 部屋数
+const OCC_DAYS_YR  = 365;  // 年間営業日数
+
+function timeToHours(t){ const[h,m]=t.split(':').map(Number); return h+m/60; }
+
+function calcMonthOccupancy(moStr){
+  // 月の日数 → 按分係数（月単位）
+  const [yr,mo]=moStr.split('-').map(Number);
+  const daysInMonth=new Date(yr,mo,0).getDate();
+  const monthDays = OCC_DAYS_YR/12; // 365/12 ≒ 30.42 を使用（均等配分）
+
+  // 分母: 営業時間 × 部屋数 × 月換算営業日数
+  const denomH = OCC_OPEN_H * OCC_ROOMS * monthDays;
+
+  // 分子: 対象予約の実時間合計（時間）
+  const targets = BOOKINGS.filter(b=>
+    b.date.startsWith(moStr) &&
+    OCC_STUDIOS.includes(b.studio) &&
+    OCC_PURPOSES.includes(b.purpose)
+  );
+  let totalH=0;
+  const byStudio={};
+  targets.forEach(b=>{
+    const h=timeToHours(b.end)-timeToHours(b.start);
+    totalH+=h;
+    byStudio[b.studio]=(byStudio[b.studio]||0)+h;
+  });
+
+  const pct=denomH>0?Math.min((totalH/denomH)*100,100):0;
+
+  // render
+  const pctStr=pct.toFixed(1)+'%';
+  document.getElementById('occ-pct').textContent=pctStr;
+  document.getElementById('occ-bar').style.width=pct+'%';
+  // color by rate
+  const barEl=document.getElementById('occ-bar');
+  if(pct>=70)barEl.style.background='linear-gradient(90deg,var(--success),#22c55e)';
+  else if(pct>=40)barEl.style.background='linear-gradient(90deg,var(--accent),var(--accent2))';
+  else barEl.style.background='linear-gradient(90deg,var(--kari),#3b82f6)';
+
+  document.getElementById('occ-bar-right').textContent=pctStr;
+  document.getElementById('occ-period').textContent=`${moStr.replace('-','年')}月 ／ 基準: ${Math.round(monthDays)}日 × ${OCC_ROOMS}室 × ${OCC_OPEN_H}h`;
+
+  // detail by studio
+  const detailHTML=OCC_STUDIOS.map(s=>{
+    const h=(byStudio[s]||0);
+    const sp=denomH/OCC_ROOMS>0?(h/(denomH/OCC_ROOMS)*100):0;
+    return `<div class="occupancy-detail-item"><span>${s}</span><strong>${h.toFixed(1)}h <span style="font-size:11px;color:var(--text2)">(${sp.toFixed(1)}%)</span></strong></div>`;
+  }).join('');
+  document.getElementById('occ-detail').innerHTML=
+    detailHTML+
+    `<div class="occupancy-detail-item"><span>合計実予約時間</span><strong>${totalH.toFixed(1)}h</strong></div>`+
+    `<div class="occupancy-detail-item"><span>分母（上限）</span><strong>${Math.round(denomH)}h</strong></div>`;
+}
+
+function updateApprovalBadge(){
+  const count=PENDING_USERS.length;
+  const badge=document.getElementById('approval-badge');
+  if(count>0&&currentUser?.role==='admin'){badge.textContent=count;badge.style.display='inline-block';}
+  else{badge.style.display='none';}
+}
+
+// ── BOOKING CARD ──
+function displayName(b){return b.userType==='staff'?'社内スタッフ':b.userName;}
+function bookingCardHTML(b){
+  const color=STUDIO_COLORS[b.studio]||'#7c6ff7';
+  const statusLabel=b.status==='confirmed'?'確定':'仮押さえ';
+  const uname=displayName(b);
+  const bookerInitial=(b.bookedBy||'?').charAt(0).toUpperCase();
+  const purposeStr=b.purpose==='その他'?`その他: ${b.purposeText||''}`:b.purpose;
+  const adminBtns=currentUser?.role==='admin'?`
+    <button class="btn-icon" title="ステータス切替" onclick="quickToggle(${b.id})">🔄</button>
+    <button class="btn-icon" title="編集" onclick="editBooking(${b.id})">✏️</button>
+    <button class="btn-icon danger" title="削除" onclick="deleteBooking(${b.id})">🗑️</button>`:
+    `<button class="btn-icon" title="編集" onclick="editBooking(${b.id})">✏️</button>`;
+  return `<div class="booking-card">
+    <div class="booking-color" style="background:${color}"></div>
+    <div class="booking-info">
+      <div class="booking-title">
+        <strong>${b.studio}</strong><span style="color:var(--text2);font-weight:400">—</span>${uname}
+        <span class="booked-by-badge"><span class="mini-avatar">${bookerInitial}</span>${b.bookedBy}</span>
+      </div>
+      <div class="booking-meta">
+        <span>📅 ${b.date}</span><span>🕐 ${b.start}〜${b.end}</span><span>🎯 ${purposeStr}</span>
+        ${b.note&&b.purpose!=='その他'?`<span>📝 ${b.note}</span>`:''}
+      </div>
+    </div>
+    <span class="status-badge ${b.status}">${statusLabel}</span>
+    <div class="booking-actions">${adminBtns}</div>
+  </div>`;
+}
+
+function renderRecentBookings(){
+  const today=new Date().toISOString().slice(0,10);
+  const list=BOOKINGS.filter(b=>b.date>=today).sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start)).slice(0,6);
+  document.getElementById('recent-bookings').innerHTML=list.length?list.map(bookingCardHTML).join(''):'<p style="color:var(--text2);font-size:13px">直近の予約はありません</p>';
+}
+
+// ── CALENDAR ──
+function renderCalendar(){
+  document.getElementById('cal-month-label').textContent=new Date(calYear,calMonth,1).toLocaleDateString('ja-JP',{year:'numeric',month:'long'});
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMo=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const today=new Date().toISOString().slice(0,10);
+  const totalCells=Math.ceil((firstDay+daysInMo)/7)*7;
+  const moStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}`;
+  const moBks=BOOKINGS.filter(b=>b.date.startsWith(moStr));
+  const summary={};moBks.forEach(b=>{summary[b.studio]=(summary[b.studio]||0)+1;});
+  let sumHTML=Object.entries(summary).map(([s,c])=>`<div class="cal-summary-item"><div class="cal-summary-dot" style="background:${STUDIO_COLORS[s]||'#888'}"></div>${s}：${c}件</div>`).join('');
+  sumHTML+=moBks.length?`<div class="cal-summary-item" style="font-weight:600;color:var(--text)">合計 ${moBks.length}件</div>`:'<span style="font-size:12px;color:var(--text2)">この月の予約はありません</span>';
+  document.getElementById('cal-month-summary').innerHTML=sumHTML;
+  let html='';
+  for(let i=0;i<totalCells;i++){
+    let day,mo=calMonth,yr=calYear,other=false;
+    if(i<firstDay){day=daysInPrev-firstDay+i+1;mo--;other=true;if(mo<0){mo=11;yr--;}}
+    else if(i>=firstDay+daysInMo){day=i-firstDay-daysInMo+1;mo++;other=true;if(mo>11){mo=0;yr++;}}
+    else{day=i-firstDay+1;}
+    const dateStr=`${yr}-${String(mo+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const isToday=dateStr===today&&!other,dow=i%7;
+    const dayBks=BOOKINGS.filter(b=>b.date===dateStr&&!other).sort((a,b)=>a.start.localeCompare(b.start));
+    const dots=dayBks.slice(0,3).map(b=>`<div class="day-booking ${b.status}" onclick="event.stopPropagation();editBooking(${b.id})" title="${b.studio} ${b.start}〜${b.end} / ${displayName(b)}">${b.start} ${b.studio} · ${displayName(b)}</div>`).join('');
+    html+=`<div class="cal-day${other?' other-month':''}${isToday?' today':''}${dow===0?' sunday':''}${dow===6?' saturday':''}" onclick="openModalDate('${dateStr}')">
+      <div class="day-num">${day}</div>${dots}
+      ${dayBks.length>3?`<div style="font-size:10px;color:var(--text2);margin-top:2px">+${dayBks.length-3}件</div>`:''}
+    </div>`;
+  }
+  document.getElementById('cal-days').innerHTML=html;
+}
+function changeMonth(d){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function goToday(){const t=new Date();calYear=t.getFullYear();calMonth=t.getMonth();renderCalendar();}
+
+// ── BOOKINGS LIST ──
+function renderBookingsList(){
+  const sorted=[...BOOKINGS].sort((a,b)=>a.date.localeCompare(b.date)||a.start.localeCompare(b.start));
+  const filtered=sorted.filter(b=>{
+    if(currentFilter==='all')return true;
+    if(currentFilter==='kari'||currentFilter==='confirmed')return b.status===currentFilter;
+    return b.studio===currentFilter;
+  });
+  document.getElementById('bookings-list').innerHTML=filtered.length?filtered.map(bookingCardHTML).join(''):'<p style="color:var(--text2);font-size:13px">該当する予約はありません</p>';
+}
+function filterBookings(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBookingsList();
+}
+
+// ── USERS & APPROVALS ──
+async function renderUsers(){
+  const approvalSection=document.getElementById('approval-section');
+  if(currentUser?.role==='admin'){
+    approvalSection.style.display='block';
+    const res=await api('getPending');
+    if(res.ok) PENDING_USERS=res.data;
+    const countBadge=document.getElementById('approval-count-badge');
+    countBadge.textContent=PENDING_USERS.length>0?`${PENDING_USERS.length}件の承認待ち`:'';
+    document.getElementById('approval-list').innerHTML=PENDING_USERS.length===0
+      ?'<div class="empty-state">現在、承認待ちのアカウントはありません ✅</div>'
+      :PENDING_USERS.map(p=>`
+        <div class="approval-card">
+          <div class="user-card-avatar" style="width:42px;height:42px;flex-shrink:0;border-radius:50%;background:linear-gradient(135deg,var(--warning),#f59e0b);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:white;">${p.name.charAt(0)}</div>
+          <div class="approval-info">
+            <div class="approval-name">${p.name} <span style="font-size:11px;color:var(--text2);font-weight:400">@${p.username}</span></div>
+            <div class="approval-meta">
+              <span>📧 ${p.email}</span>
+              <span>🏷️ ${{staff:'スタッフ',artist:'アーティスト'}[p.role]}</span>
+              <span>📅 申請日：${p.requestedAt}</span>
+            </div>
+          </div>
+          <div class="approval-actions">
+            <button class="btn-approve" onclick="approveUser('${p.id}')">✓ 承認</button>
+            <button class="btn-reject" onclick="rejectUser('${p.id}')">✕ 却下</button>
+          </div>
+        </div>`).join('');
+    // approved users
+    const ures=await api('getUsers');
+    const roleLabel={admin:'管理者',staff:'スタッフ',artist:'アーティスト'};
+    document.getElementById('users-grid').innerHTML=ures.ok
+      ?ures.data.map(u=>`
+        <div class="user-card">
+          <div class="user-card-header">
+            <div class="user-card-avatar">${u.initial||u.name.charAt(0)}</div>
+            <div><div class="user-card-name">${u.name}</div><div class="user-card-email">${u.email}</div></div>
+          </div>
+          <div class="user-card-footer">
+            <span class="role-badge ${u.role}">${roleLabel[u.role]||u.role}</span>
+            <span style="font-size:11px;color:var(--text2)">@${u.username}</span>
+          </div>
+        </div>`).join('')
+      :'<p style="color:var(--text2);font-size:13px">ユーザーを読み込めませんでした</p>';
+  } else {
+    approvalSection.style.display='none';
+    document.getElementById('users-grid').innerHTML='';
+  }
+}
+
+async function approveUser(id){
+  setLoading(true,'承認中...');
+  const result=await api('approveUser',{id});
+  setLoading(false);
+  if(result.ok){showToast('✅','アカウントを承認しました');}
+  else{showToast('⚠️',result.error||'承認に失敗しました');}
+  await renderUsers();updateApprovalBadge();
+}
+async function rejectUser(id){
+  if(!confirm('この申請を却下しますか？'))return;
+  setLoading(true,'処理中...');
+  const result=await api('rejectUser',{id});
+  setLoading(false);
+  if(result.ok){showToast('🗑️','申請を却下しました');}
+  else{showToast('⚠️',result.error||'却下に失敗しました');}
+  await renderUsers();updateApprovalBadge();
+}
+
+// ── MODAL ──
+function onPurposeChange(){document.getElementById('purpose-other-wrap').classList.toggle('show',document.getElementById('f-purpose').value==='その他');}
+function onUserTypeChange(){document.getElementById('artist-name-wrap').classList.toggle('show',document.getElementById('f-user-type').value==='artist');}
+
+function openModal(dateStr){
+  editingId=null;
+  document.getElementById('modal-title').textContent='📅 新規予約';
+  document.getElementById('f-studio').value='1st';
+  document.getElementById('f-purpose').value='レコーディング';
+  document.getElementById('f-purpose-other').value='';
+  document.getElementById('purpose-other-wrap').classList.remove('show');
+  document.getElementById('f-user-type').value='staff';
+  document.getElementById('f-artist-name').value='';
+  document.getElementById('artist-name-wrap').classList.remove('show');
+  document.getElementById('f-date').value=dateStr||new Date().toISOString().slice(0,10);
+  fillSel('f-start','10:00');fillSel('f-end','12:00');
+  document.getElementById('f-note').value='';
+  if(currentUser?.role==='admin')document.getElementById('f-status').value='kari';
+  document.getElementById('modal').classList.add('show');
+}
+function openModalDate(d){openModal(d);}
+function closeModal(){document.getElementById('modal').classList.remove('show');}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+function editBooking(id){
+  const b=BOOKINGS.find(x=>x.id===id);if(!b)return;
+  editingId=id;
+  document.getElementById('modal-title').textContent='✏️ 予約を編集';
+  document.getElementById('f-studio').value=b.studio;
+  document.getElementById('f-purpose').value=b.purpose;
+  document.getElementById('f-purpose-other').value=b.purposeText||'';
+  document.getElementById('purpose-other-wrap').classList.toggle('show',b.purpose==='その他');
+  document.getElementById('f-user-type').value=b.userType;
+  document.getElementById('f-artist-name').value=b.userType==='artist'?b.userName:'';
+  document.getElementById('artist-name-wrap').classList.toggle('show',b.userType==='artist');
+  document.getElementById('f-date').value=b.date;
+  fillSel('f-start',b.start);fillSel('f-end',b.end);
+  document.getElementById('f-note').value=b.note||'';
+  if(currentUser?.role==='admin')document.getElementById('f-status').value=b.status;
+  document.getElementById('modal').classList.add('show');
+}
+
+async function submitBooking(){
+  const studio=document.getElementById('f-studio').value;
+  const purpose=document.getElementById('f-purpose').value;
+  const purposeText=purpose==='その他'?document.getElementById('f-purpose-other').value.trim():'';
+  const userType=document.getElementById('f-user-type').value;
+  const artistName=document.getElementById('f-artist-name').value.trim();
+  const date=document.getElementById('f-date').value;
+  const start=document.getElementById('f-start').value;
+  const end=document.getElementById('f-end').value;
+  const note=document.getElementById('f-note').value.trim();
+  const status=currentUser?.role==='admin'?document.getElementById('f-status').value:'kari';
+  const userName=userType==='artist'?(artistName||'アーティスト'):'社内スタッフ';
+  if(!date){showToast('⚠️','日付を選択してください');return;}
+  if(start>=end){showToast('⚠️','終了時間は開始時間より後にしてください');return;}
+  if(userType==='artist'&&!artistName){showToast('⚠️','アーティスト名を入力してください');return;}
+  if(purpose==='その他'&&!purposeText){showToast('⚠️','用途を入力してください');return;}
+  const conflict=BOOKINGS.find(b=>b.id!==editingId&&b.studio===studio&&b.date===date&&!(end<=b.start||start>=b.end));
+  if(conflict){showToast('⚠️',`${studio}は${conflict.start}〜${conflict.end}に既に予約があります`);return;}
+  const data={studio,purpose,purposeText,userType,userName,date,start,end,note,status,bookedBy:currentUser.username};
+  closeModal();
+  setLoading(true,editingId?'更新中...':'予約を登録中...');
+  let result;
+  if(editingId){
+    result=await api('updateBooking',{...data,id:editingId});
+    if(result.ok){Object.assign(BOOKINGS.find(x=>x.id==editingId),data);}
+  } else {
+    const newId=Date.now();
+    result=await api('addBooking',{...data,id:newId});
+    if(result.ok){BOOKINGS.push({id:newId,...data});}
+  }
+  setLoading(false);
+  if(result.ok){showToast('✅',editingId?'予約を更新しました':gcalConnected?'予約を追加しGoogleカレンダーに同期しました':'予約を追加しました');}
+  else{showToast('⚠️',result.error||'保存に失敗しました');}
+  updateStats();renderRecentBookings();renderCalendar();renderBookingsList();
+}
+
+async function deleteBooking(id){
+  if(!confirm('この予約を削除しますか？'))return;
+  setLoading(true,'削除中...');
+  const result=await api('deleteBooking',{id});
+  setLoading(false);
+  if(result.ok){
+    BOOKINGS=BOOKINGS.filter(b=>b.id!=id);
+    showToast('🗑️','予約を削除しました');
+  } else {
+    showToast('⚠️',result.error||'削除に失敗しました');
+  }
+  updateStats();renderRecentBookings();renderCalendar();renderBookingsList();
+}
+
+async function quickToggle(id){
+  const b=BOOKINGS.find(x=>x.id==id);if(!b)return;
+  const newStatus=b.status==='kari'?'confirmed':'kari';
+  setLoading(true,'更新中...');
+  const result=await api('updateBooking',{...b,status:newStatus});
+  setLoading(false);
+  if(result.ok){
+    b.status=newStatus;
+    showToast('🔄',`「${newStatus==='confirmed'?'確定':'仮押さえ'}」に変更しました`);
+  } else {
+    showToast('⚠️',result.error||'更新に失敗しました');
+  }
+  updateStats();renderRecentBookings();renderCalendar();renderBookingsList();
+}
+
+function toggleGcal(){
+  gcalConnected=!gcalConnected;
+  const btn=document.getElementById('gcal-btn');
+  btn.textContent=gcalConnected?'✓ 連携中':'連携する';
+  btn.classList.toggle('connected',gcalConnected);
+  if(gcalConnected)showToast('📆','Googleカレンダーと連携しました（デモ）');
+}
+
+function showToast(icon,text){
+  document.getElementById('toast-icon').textContent=icon;
+  document.getElementById('toast-text').textContent=text;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>
